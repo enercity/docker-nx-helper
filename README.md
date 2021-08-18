@@ -1,8 +1,6 @@
 # docker-nx-helper
 
-Docker plugin to generate 
-
-Works best with `docker-kustomize-lqt` when multiple manifests are being generated from a single build and need to be validated. 
+Docker plugin to generate nx projects for one or more clients by environment
 
 ## Docker
 
