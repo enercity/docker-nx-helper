@@ -8,7 +8,7 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      repo: thomaswiener/docker-nx-helper
+      repo: lynqtech/docker-nx-helper
       auto_tag: true
 
 trigger:
