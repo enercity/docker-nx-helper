@@ -1,0 +1,106 @@
+#!/bin/bash
+
+ENVIRONMENT=$1
+
+SYNTAX='
+Syntax:
+./nx-lqt {ENVIRONMENT}
+---
+Description
+ENVIRONMENT = dev|stage|prod - required
+'
+
+if [ -z "$ENVIRONMENT" ] || [ "$ENVIRONMENT" != "dev" ] && [ "$ENVIRONMENT" != "stage" ] && [ "$ENVIRONMENT" != "prod" ]; then
+  echo "ENVIRONMENT needs to be of value dev|stage|prod"
+  echo "$SYNTAX"
+  exit 1
+fi
+
+if [ -z "${DRONE_COMMIT_SHA}" ]; then
+  echo "DRONE_COMMIT_SHA may not be empty"
+  echo "$SYNTAX"
+  exit 1
+fi
+
+BASE=$(pwd)
+rm -rf $BASE/archive
+
+FOLDER=dist/
+CLIENTS=($FOLDER*)
+
+for DIR in "${CLIENTS[@]}"
+do
+  APP_FOLDER="$DIR/apps/"
+  CLIENT=${DIR#"$FOLDER"}
+  REMARK=""
+
+  # TODO compatibility mode, remove if not used anymore - start
+  if [ "$CLIENT" == "apps" ]; then
+    APP_FOLDER="$FOLDER/apps/"
+    CLIENT=enercity
+    REMARK="compatibility"
+  fi
+  # TODO compatibility mode, remove if not used anymore - end
+
+  TARGET_CLIENT="$CLIENT"
+
+  # compatibility mode, enercity-dev > lynqtech-dev, remove once all enercity-dev overlays have been migrated to lynqtech-dev
+  if [ "$CLIENT" = "enercity" ] && [ "$ENVIRONMENT" = "dev" ]; then
+    TARGET_CLIENT="lynqtech"
+    echo "Compatibility Mode, client: enercity >>> lynqtech"
+  fi
+  # compatibility mode, end
+
+  APPS=($APP_FOLDER*)
+  for APP_DIR in "${APPS[@]}"
+  do
+    APP=${APP_DIR#"$APP_FOLDER"}
+    if [ "$APP" == "agent-portal" ]; then
+      SUB_APP_FOLDER="$APP_DIR/"
+      SUB_APPS=($SUB_APP_FOLDER*)
+      for SUB_APP_DIR in "${SUB_APPS[@]}"
+      do
+        SUB_APP=${SUB_APP_DIR#"$SUB_APP_FOLDER"}
+        echo "Client: $CLIENT $APP | TargetClient: $TARGET_CLIENT | SubApp: $SUB_APP | Remark: $REMARK"
+        CURRENT_VERSION=$(node -e "console.log(require('./apps/$APP/$SUB_APP/manifest.json').version);")-${DRONE_BUILD_NUMBER}
+        #CURRENT_VERSION=$(cat "./apps/$APP/$SUB_APP/manifest.json")-${DRONE_BUILD_NUMBER}
+        SRC_DIR="$BASE/dist/$CLIENT/apps/$APP/$SUB_APP/"
+        if [ -d "$SRC_DIR" ]; then
+          TARGET_DIR="$BASE/archive/cdn/$TARGET_CLIENT/$ENVIRONMENT/$APP-$SUB_APP"
+          mkdir -p "$TARGET_DIR"
+          cd $SRC_DIR && zip -r $TARGET_DIR/$CURRENT_VERSION.zip ./ && cd $BASE
+        fi
+
+        # TODO compatibility mode, remove if not used anymore - start
+        SRC_DIR="$BASE/dist/apps/$APP/$SUB_APP/"
+        if [ -d "$SRC_DIR" ]; then
+          TARGET_DIR="$BASE/archive/cdn/$TARGET_CLIENT/$ENVIRONMENT/$APP-$SUB_APP"
+          mkdir -p "$TARGET_DIR"
+          cd $SRC_DIR && zip -r $TARGET_DIR/$CURRENT_VERSION.zip ./ && cd $BASE
+        fi
+        # TODO compatibility mode, remove if not used anymore - end
+
+      done
+    elif [ "$APP" == "customer-portal" ]; then
+      CURRENT_VERSION=$(node -e "console.log(require('./apps/$APP/manifest.json').version);")-${DRONE_BUILD_NUMBER}
+      #CURRENT_VERSION=$(cat "./apps/$APP/manifest.json")-${DRONE_BUILD_NUMBER}
+
+      SRC_DIR="$BASE/dist/$CLIENT/apps/$APP/"
+      if [ -d "$SRC_DIR" ]; then
+        TARGET_DIR="$BASE/archive/cdn/$TARGET_CLIENT/$ENVIRONMENT/$APP"
+        mkdir -p "$TARGET_DIR"
+        cd $SRC_DIR && zip -r $TARGET_DIR/$CURRENT_VERSION.zip ./ && cd $BASE
+      fi
+
+      # TODO compatibility mode, remove if not used anymore - start
+      SRC_DIR="$BASE/dist/apps/$APP/"
+      if [ -d "$SRC_DIR" ]; then
+        TARGET_DIR="$BASE/archive/cdn/$TARGET_CLIENT/$ENVIRONMENT/$APP"
+        mkdir -p "$TARGET_DIR"
+        cd $SRC_DIR && zip -r $TARGET_DIR/$CURRENT_VERSION.zip ./ && cd $BASE
+      fi
+      # TODO compatibility mode, remove if not used anymore - end
+
+    fi
+  done
+done
