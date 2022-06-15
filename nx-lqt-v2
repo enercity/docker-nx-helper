@@ -54,8 +54,10 @@ do
 
   # check if environment contains a client and set as target client - start
   if [ "$ENVIRONMENT" =~ $CLIENT_REGEX ]; then
-    TARGET_CLIENT="${BASH_REMATCH[0]}"
-    echo "Target client set to ${BASH_REMATCH[0]}"
+    TARGET_CLIENT="${BASH_REMATCH[1]}"
+    echo "Target client set to ${BASH_REMATCH[1]}"
+    ENVIRONMENT="${BASH_REMATCH[2]}"
+    echo "Environment set to ${BASH_REMATCH[2]}"
   fi
   # check if environment contains a client and set as target client - end
 
