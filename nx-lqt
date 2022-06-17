@@ -1,17 +1,18 @@
 #!/bin/bash
 
 ENVIRONMENT=$1
+CLIENT_REGEX='(.+)-(dev|stage|prod)$'
 
 SYNTAX='
 Syntax:
 ./nx-lqt {ENVIRONMENT}
 ---
 Description
-ENVIRONMENT = dev|stage|prod - required
+ENVIRONMENT = dev|stage|prod|{client}-prod - required
 '
 
-if [ -z "$ENVIRONMENT" ] || [ "$ENVIRONMENT" != "dev" ] && [ "$ENVIRONMENT" != "stage" ] && [ "$ENVIRONMENT" != "prod" ]; then
-  echo "ENVIRONMENT needs to be of value dev|stage|prod"
+if [ -z "$ENVIRONMENT" ] || [ "$ENVIRONMENT" != "dev" ] && [ "$ENVIRONMENT" != "stage" ] && [ "$ENVIRONMENT" != "prod" ] && [[ ! "$ENVIRONMENT" =~ $CLIENT_REGEX ]]; then
+  echo "ENVIRONMENT needs to be of value dev|stage|prod|{client}-prod"
   echo "$SYNTAX"
   exit 1
 fi
@@ -50,6 +51,15 @@ do
     echo "Compatibility Mode, client: enercity >>> lynqtech"
   fi
   # compatibility mode, end
+
+  # check if environment contains a client and set as target client - start
+  if [ "$ENVIRONMENT" =~ $CLIENT_REGEX ]; then
+    TARGET_CLIENT="${BASH_REMATCH[1]}"
+    echo "Target client set to ${BASH_REMATCH[1]}"
+    ENVIRONMENT="${BASH_REMATCH[2]}"
+    echo "Environment set to ${BASH_REMATCH[2]}"
+  fi
+  # check if environment contains a client and set as target client - end
 
   APPS=($APP_FOLDER*)
   for APP_DIR in "${APPS[@]}"
